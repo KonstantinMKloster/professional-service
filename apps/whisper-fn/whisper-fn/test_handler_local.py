@@ -28,6 +28,7 @@ Run: python3 test_handler_local.py
 """
 import asyncio
 import sys
+import tempfile
 import types
 
 
@@ -52,8 +53,14 @@ def _install_stub_modules():
     sys.modules["boto3"] = boto3_stub
 
     # --- stub imageio_ffmpeg ---
+    # handler.py symlinks this path to a sibling "ffmpeg" file at import time,
+    # so the fake path needs to (a) actually exist and (b) not already be
+    # named "ffmpeg", mirroring imageio_ffmpeg's real versioned filenames.
+    fake_ffmpeg_dir = tempfile.mkdtemp(prefix="fake-ffmpeg-")
+    fake_ffmpeg_exe = f"{fake_ffmpeg_dir}/ffmpeg-fake-v0"
+    open(fake_ffmpeg_exe, "w").close()
     ffmpeg_stub = types.ModuleType("imageio_ffmpeg")
-    ffmpeg_stub.get_ffmpeg_exe = lambda: "/fake/bin/ffmpeg"
+    ffmpeg_stub.get_ffmpeg_exe = lambda: fake_ffmpeg_exe
     sys.modules["imageio_ffmpeg"] = ffmpeg_stub
 
     # --- stub whisper ---
